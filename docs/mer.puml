@@ -1,0 +1,45 @@
+@startuml "Diagrama MER"
+entity "Plantacao" as Plantacao {
+  #<b>id_plantacao</b>: INTEGER
+  --
+  *data_inicio: DATETIME
+  *data_fim: DATETIME
+  *nome: VARCHAR(100)
+  *cultura: VARCHAR(50)
+  *localizacao: VARCHAR(200)
+}
+
+entity "Sensor" as Sensor {
+  #<b>id_sensor</b>: INTEGER
+  --
+  *tipo_sensor: VARCHAR(50)
+  *modelo: VARCHAR(50)
+  *unidade_medida: VARCHAR(10)
+}
+
+entity "Leitura_Sensor" as Leitura {
+  #<b>id_leitura</b>: INTEGER
+  --
+  #id_sensor: INTEGER (FK)
+  #id_plantacao: INTEGER (FK)
+  --
+  *valor: FLOAT
+  *data_hora: DATETIME
+}
+
+entity "Aplicacao_Agua" as Aplicacao {
+  #<b>id_aplicacao</b>: INTEGER
+  --
+  #id_plantacao: INTEGER (FK)
+  --
+  *data_inicio: DATETIME
+  *data_fim: DATETIME
+  *quantidade_litros: INTEGER
+}
+
+' RELACIONAMENTOS
+Plantacao ||--o{ Leitura : realiza
+Sensor ||--o{ Leitura : gera
+Plantacao ||--o{ Aplicacao : recebe
+
+@enduml
