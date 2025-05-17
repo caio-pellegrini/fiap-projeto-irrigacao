@@ -71,7 +71,13 @@ class Database:
         self.connection.close()
 
     def inserir_leitura(self, dados):
-        self.cursor.execute("INSERT INTO leituras_sensores (id_sensor, id_plantacao, valor, data_hora) VALUES()", dados)
+        self.cursor.execute("INSERT INTO leituras_sensores (id_sensor, id_plantacao, valor, data_hora) VALUES(?, ?, ?, ?)", dados)
+        self.connection.commit()
+
+    def listar_dados(self):
+        for row in self.cursor.execute('SELECT * FROM leituras_sensores'):
+            print(row)
+
 
 
 

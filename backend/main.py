@@ -23,13 +23,29 @@ id_plantacao = 1 # apenas um teste, temos uma plantação só
 
 while True:
     try:
-        data = espSerial.readline().decode('utf-8').strip()
-        # print(f"Recebido: {data}")
-        leitura = json.loads(data)['leitura']
+        data_json = espSerial.readline().decode('utf-8').strip()
+        # print(f"Recebido: {data_json}")
+        data = json.loads(data_json)
+        # print(data)
+        chave_raiz = list(data.keys())[0]
+
+        if (chave_raiz == 'leitura'):
+            #
+                    timestamp = datetime.now().isoformat()
+
+        elif (chave_raiz == 'aplicacao_agua'):
+            # 
+                    timestamp = datetime.now().isoformat()
+
+        else:
+                       timestamp = datetime.now().isoformat()
+
+            #
+        # leitura = 
         # print(f"Leitura: {leitura}")
         timestamp = datetime.now().isoformat()
 
-        db.inserir_leitura((leitura['id_sensor'], id_plantacao, leitura['valor'], timestamp))
+        # db.inserir_leitura((leitura['id_sensor'], id_plantacao, leitura['valor'], timestamp))
 
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
         print(f"Erro ao decodificar: {e}")
@@ -37,6 +53,7 @@ while True:
         print("Programa encerrado")
         break
 
+db.listar_dados()
 espSerial.close()
 db.close()
 
