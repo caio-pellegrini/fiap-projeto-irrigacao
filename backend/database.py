@@ -5,7 +5,7 @@ class Database:
         self.connection = sqlite3.connect(db_name)
         self.cursor = self.connection.cursor()
     
-    def criar_database(self):
+    def criar_tabelas(self):
         self.cursor.executescript("""
             CREATE TABLE IF NOT EXISTS plantacoes (
                 id_plantacao INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,21 +44,7 @@ class Database:
         """)
         self.connection.commit()
 
-    def preencher_database(self):
-        self.cursor.executescript("""
-            INSERT INTO plantacoes (nome, data_inicio, data_fim, cultura, localizacao)
-            VALUES ('Plantação Teste', '2025-05-01', '2025-05-30', 'Milho', 'Monte Alto - SP');
-            
-            INSERT INTO sensores (tipo_sensor, modelo, unidade_medida)
-            VALUES
-                ('umidade', 'dht22', '%'),
-                ('ph', 'ldr', 'ph'),
-                ('fosforo', 'pushbutton', 'presenca'),
-                ('potassio', 'pushbutton', 'presenca');
-        """)
-        self.connection.commit()
-
-    def limpar_database(self):
+    def excluir_tabelas(self):
         self.cursor.executescript("""
             DROP TABLE IF EXISTS plantacoes;
             DROP TABLE IF EXISTS sensores;
@@ -69,15 +55,6 @@ class Database:
 
     def close(self):
         self.connection.close()
-
-    def inserir_leitura(self, dados):
-        self.cursor.execute("INSERT INTO leituras_sensores (id_sensor, id_plantacao, valor, data_hora) VALUES(?, ?, ?, ?)", dados)
-        self.connection.commit()
-
-    def listar_dados(self):
-        for row in self.cursor.execute('SELECT * FROM leituras_sensores'):
-            print(row)
-
 
 
 

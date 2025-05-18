@@ -1,61 +1,104 @@
 import serial
 import json
-from datetime import datetime
-import database
+from datetime import datetime, timedelta
+from database import Database
+from crud import *
 
-# Conecta à porta COM (veja no Gerenciador de Dispositivos)
-espSerial = serial.Serial('COM4', 115200)
-
-db = database.Database()
+db = Database()
 
 print('Configurando database...')
 
 # Limpar banco de dados (excluir dados para nova simulação)
-db.limpar_database()
-# Criar banco de dados de acordo com estrutura 'mer.puml'
-db.criar_database()
+db.excluir_tabelas()
+# Criar banco de dados e tabelas de acordo com estrutura 'mer.puml'
+db.criar_tabelas()
+
 # Preenche com plantação teste e 4 sensores do desafio
-db.preencher_database()
+criar_plantacao(db, 'Plantação Teste', '2025-05-01', '2025-05-30', 'Milho', 'Monte Alto - SP')
+criar_sensor(db, ('umidade', 'dht22', '%'))
+criar_sensor(db, ('ph', 'ldr', 'ph'))
+criar_sensor(db, ('fosforo', 'pushbutton', 'presenca'))
+criar_sensor(db, ('potassio', 'pushbutton', 'presenca'))
+
+# Conecta à porta COM (veja no Gerenciador de Dispositivos)
+espSerial = serial.Serial('COM4', 115200)
 
 print("Lendo dados do ESP32...")
 
-id_plantacao = 1 # apenas um teste, temos uma plantação só
+try:
+    while True:
+        # 1. Leitura e decodificação da linha serial
+        try:
+            linha = espSerial.readline().decode('utf-8').strip()
+        except UnicodeDecodeError as e:
+            print(f"[Erro] Falha ao decodificar linha: {e}")
+            continue
+        
+        # 2. Parse do JSON
+        try:
+            dados = json.loads(linha)
+        except json.JSONDecodeError as e:
+            print(f"[Erro] JSON inválido: {linha} -> {e}")
+            continue
 
-while True:
-    try:
-        data_json = espSerial.readline().decode('utf-8').strip()
-        # print(f"Recebido: {data_json}")
-        data = json.loads(data_json)
-        # print(data)
-        chave_raiz = list(data.keys())[0]
+        # 3. Obter timestamp e chave principal
+        timestamp = datetime.now()
+        chave_raiz = list(dados.keys())[0]
 
-        if (chave_raiz == 'leitura'):
-            #
-                    timestamp = datetime.now().isoformat()
+        try:
+            # 4. Processamento da leitura
+            if chave_raiz == 'leitura':
+                print('.', end=" ", flush=True)
+                leitura = dados['leitura']
+                data_hora = timestamp.isoformat()
+                dados_para_inserir = (
+                    leitura['id_sensor'],
+                    leitura['id_plantacao'],
+                    leitura['valor'],
+                    data_hora
+                )
+                inserir_leitura(db, dados_para_inserir)
 
-        elif (chave_raiz == 'aplicacao_agua'):
-            # 
-                    timestamp = datetime.now().isoformat()
+            # 5. Processamento da aplicação de água
+            elif chave_raiz == 'aplicacao_agua':
+                aplicacao = dados['aplicacao_agua']
+                data_fim = timestamp.isoformat()
+                tempo_aplicacao = timedelta(milliseconds=aplicacao['tempo_aplicacao'])
+                data_inicio = timestamp - tempo_aplicacao
+                dados_para_inserir = (
+                    aplicacao['id_plantacao'],
+                    data_inicio,
+                    data_fim,
+                    aplicacao['quantidade_litros']
+                )
+                inserir_aplicacao(db, dados_para_inserir)
 
-        else:
-                       timestamp = datetime.now().isoformat()
+            else:
+                print(f"[Aviso] Tipo de dado desconhecido: {chave_raiz}")
 
-            #
-        # leitura = 
-        # print(f"Leitura: {leitura}")
-        timestamp = datetime.now().isoformat()
+        except KeyError as e:
+            print(f"[Erro] Dado esperado não encontrado: {e}")
+        except Exception as e:
+            print(f"[Erro] Falha ao processar dados: {e}")
 
-        # db.inserir_leitura((leitura['id_sensor'], id_plantacao, leitura['valor'], timestamp))
+except KeyboardInterrupt:
+    print("\n[Info] Execução interrompida manualmente.")
 
-    except (json.JSONDecodeError, UnicodeDecodeError) as e:
-        print(f"Erro ao decodificar: {e}")
-    except KeyboardInterrupt:
-        print("Programa encerrado")
-        break
+finally:
+    print("=============== PLANTACOES ============")
+    for row in listar_plantacoes(db):
+        print(row)
+    print("=============== LEITURAS DOS SENSORES ============")
+    for row in listar_leituras(db):
+        print(row)
+    print("=============== APLICACOES DE ÁGUA ============")
+    for row in listar_aplicacoes(db):
+        print(row)
 
-db.listar_dados()
-espSerial.close()
-db.close()
+    print("Encerrando conexões...")
+    espSerial.close()
+    db.close()
+    print("Programa encerrado!")
 
 
 
