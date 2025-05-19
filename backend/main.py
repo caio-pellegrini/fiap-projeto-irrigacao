@@ -14,11 +14,11 @@ db.excluir_tabelas()
 db.criar_tabelas()
 
 # Preenche com plantação teste e 4 sensores do desafio
-criar_plantacao(db, 'Plantação Teste', '2025-05-01', '2025-05-30', 'Milho', 'Monte Alto - SP')
-criar_sensor(db, ('umidade', 'dht22', '%'))
-criar_sensor(db, ('ph', 'ldr', 'ph'))
-criar_sensor(db, ('fosforo', 'pushbutton', 'presenca'))
-criar_sensor(db, ('potassio', 'pushbutton', 'presenca'))
+inserir_plantacao(db, ('Plantação Teste', '2025-05-01', '2025-05-30', 'Milho', 'Monte Alto - SP'))
+inserir_sensor(db, ('umidade', 'dht22', '%'))
+inserir_sensor(db, ('ph', 'LDR_PIN', 'ph'))
+inserir_sensor(db, ('fosforo', 'pushbutton', 'presenca'))
+inserir_sensor(db, ('potassio', 'pushbutton', 'presenca'))
 
 # Conecta à porta COM (veja no Gerenciador de Dispositivos)
 espSerial = serial.Serial('COM4', 115200)
@@ -34,7 +34,7 @@ try:
             print(f"[Erro] Falha ao decodificar linha: {e}")
             continue
         
-        # 2. Parse do JSON
+        # 2. Parse do JSON e salvar como dicionário
         try:
             dados = json.loads(linha)
         except json.JSONDecodeError as e:
@@ -61,6 +61,7 @@ try:
 
             # 5. Processamento da aplicação de água
             elif chave_raiz == 'aplicacao_agua':
+                print("aplicacao")
                 aplicacao = dados['aplicacao_agua']
                 data_fim = timestamp.isoformat()
                 tempo_aplicacao = timedelta(milliseconds=aplicacao['tempo_aplicacao'])
@@ -85,10 +86,18 @@ except KeyboardInterrupt:
     print("\n[Info] Execução interrompida manualmente.")
 
 finally:
+    atualizar_plantacao(db, 1, (
+        "Plantação Atualizada",
+        "2025-05-01",
+        "2025-06-01",
+        "Soja",
+        "Monte Alto - SP"
+    ))
     print("=============== PLANTACOES ============")
     for row in listar_plantacoes(db):
         print(row)
     print("=============== LEITURAS DOS SENSORES ============")
+    deletar_leitura(db, 5)
     for row in listar_leituras(db):
         print(row)
     print("=============== APLICACOES DE ÁGUA ============")
