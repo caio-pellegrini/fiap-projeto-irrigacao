@@ -1,86 +1,103 @@
 #include "DHT.h"
 
-#define BTN_P 13 // Botão Fósforo
-#define BTN_K 14 // Botão Potássio
-#define LDR 34 // LDR Ph
-#define DHTPIN 23 // Pino Sensor de umidade
-#define DHTTYPE DHT22
-#define RELE_PIN 17 // Pino de acionamento do Relé
-#define LED_PIN 16 // Pino do Led que indica se a bomba está ligada ou desligada
+// Definições de pinos
+#define BTN_FOSFORO_PIN 13     // Pino botão - simula presença de Fósforo
+#define BTN_POTASSIO_PIN 14    // Pino botão - simula presença de Potássio
+#define LDR_PIN 34             // Pino LDR - simula leitura de pH
+#define DHTPIN 23              // Pino sensor de umidade (DHT22)
+#define DHTTYPE DHT22          // Tipo do sensor DHT utilizado
+#define RELE_PIN 17            // Pino aciona o relé da bomba d'água
+#define LED_PIN 16             // Pino LED indicador do estado da bomba
 
+// Instancia o sensor DHT
 DHT dht(DHTPIN, DHTTYPE);
 
+// Variáveis de leitura dos sensores
 float umidade, phRaw, ph;
 bool temFosforo, temPotassio;
 
-// Constantes para lógica
+// Variáveis para controle lógico
 bool isUmidadeBaixa, isNutrientePresente, phAdequado;
 
 void setup() {
-  // put your setup code here, to run once:
+  // Inicializa a comunicação serial
   Serial.begin(115200);
-  Serial.println("Hello, ESP32!");
-  pinMode(BTN_P, INPUT_PULLUP);
-  pinMode(BTN_K, INPUT_PULLUP);
+
+  // Configura os pinos de entrada com resistor de pull-up interno
+  pinMode(BTN_FOSFORO_PIN, INPUT_PULLUP);
+  pinMode(BTN_POTASSIO_PIN, INPUT_PULLUP);
+
+  // Configura os pinos de saída para relé e LED
   pinMode(RELE_PIN, OUTPUT);
-  // relé/bomba inicia desativado (nesse caso HIGH = desligado)
+  pinMode(LED_PIN, OUTPUT);
+
+  // Garante que a bomba inicie desligada (RELE em HIGH) e o LED apagado
   digitalWrite(RELE_PIN, HIGH);
   digitalWrite(LED_PIN, LOW);
+
+  // Inicializa o sensor DHT
   dht.begin();
 
+  // Pequeno atraso para garantir a estabilidade dos sensores na inicialização
   delay(1000);
-  // especificar aqui os sensores pra passar pro python inserir no sqlite
 }
 
 void loop() {
-  // umidade = dht.readHumidity();
-  umidade = 39.9; // TESTEEEEEEE
-  // sensor de umidade possui id = 1
+  // Leitura do sensor de umidade do solo
+  // Envio do valor em formato JSON pela porta Serial
+  // O atraso de 200ms assegura leitura correta pelo Python
+  umidade = dht.readHumidity();
   Serial.printf("{\"leitura\": {\"id_sensor\": 1, \"id_plantacao\": 1, \"valor\": %.2f}}\n", umidade);
   delay(200);
 
-  // sensor de ph possui id = 2
-  phRaw = analogRead(LDR);
-  ph = (phRaw / 4095.0) * 14.0; // Simula pH de 0 a 14
-  ph = 6.5; // TESTEEEEEEE
+  // Leitura do LDR simulando pH
+  phRaw = analogRead(LDR_PIN);
+  ph = (phRaw / 4095.0) * 14.0; // Conversão para escala de pH (0-14)
   Serial.printf("{\"leitura\": {\"id_sensor\": 2, \"id_plantacao\": 1, \"valor\": %.1f}}\n", ph);
   delay(200);
 
-  // sensor de ph possui id = 3
-  temFosforo = digitalRead(BTN_P);
+  // Leitura do botão simulando presença de Fósforo
+  temFosforo = digitalRead(BTN_FOSFORO_PIN);
   Serial.printf("{\"leitura\": {\"id_sensor\": 3, \"id_plantacao\": 1, \"valor\": %d}}\n", temFosforo);
   delay(200);
 
-  // sensor de ph possui id = 4ç
-  temPotassio = digitalRead(BTN_K);
+  // Leitura do botão simulando presença de Potássio
+  temPotassio = digitalRead(BTN_POTASSIO_PIN);
   Serial.printf("{\"leitura\": {\"id_sensor\": 4, \"id_plantacao\": 1, \"valor\": %d}}\n", temPotassio);
   delay(200);
 
-
-  // Serial.printf("{\"umidade\": %.2f, \"ph\": %.2f, \"fosforo\": %d, \"potassio\": %d}\n",
-   //           umidade, ph, temFosforo, temPotassio);
+  // Avaliação das condições para irrigação:
+  // 1. Umidade abaixo do ideal
+  // 2. Presença de pelo menos um dos nutrientes
+  // 3. pH dentro da faixa adequada
   isUmidadeBaixa = umidade < 42.0;
   isNutrientePresente = temFosforo || temPotassio;
   phAdequado = ph >= 5.9 && ph <= 7.6;
 
+  // Verifica se todas as condições estão satisfeitas para irrigação
   if (isUmidadeBaixa && isNutrientePresente && phAdequado) {
-    // ativa o relé para ligar bomba d'água 
-    // O led interno do relé também é ativado
+    // Ativa a bomba d'água (RELE em LOW) e acende o LED indicador
     digitalWrite(RELE_PIN, LOW);
     digitalWrite(LED_PIN, HIGH);
+
+    // Registra o tempo de início para cálculo da duração da irrigação
     unsigned long tempo_inicio = millis();
+
+    // Irriga por 5s (pode ser ajustado para parar ao atingir umidade ideal)
     delay(5000);
+
+    // Calcula o tempo total de irrigação
     int tempo_aplicacao = millis() - tempo_inicio;
+
+    // Define a quantidade de água aplicada (em litros)
     int quantidade_litros = 4;
 
-    
-    // desativa relé/bomba ao fim da aplicacao
+    // Desliga a bomba (RELE em HIGH) e apaga o LED
     digitalWrite(RELE_PIN, HIGH);
     digitalWrite(LED_PIN, LOW);
 
-    // salva a aplicacao
+    // Envio do registro de aplicação em formato JSON pela porta Serial
     Serial.printf("{\"aplicacao_agua\": {\"id_plantacao\": 1, \"tempo_aplicacao\": %d, \"quantidade_litros\": %d}}\n", tempo_aplicacao, quantidade_litros);
     delay(200);
   }
-
 }

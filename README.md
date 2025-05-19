@@ -1,5 +1,7 @@
 # Sistema de Irrigação Inteligente – FarmTech Solutions
 
+**Caio Pellegrini - RM566575**
+
 ## Descrição do Projeto
 Este projeto simula um sistema de irrigação inteligente para agricultura de precisão, utilizando sensores físicos integrados a um microcontrolador ESP32. O objetivo é coletar dados de sensores de umidade, nutrientes e pH do solo, controlar automaticamente uma bomba de irrigação e armazenar os dados em um banco de dados SQL para análise posterior.
 
@@ -35,55 +37,112 @@ A bomba de irrigação é ativada somente quando **três condições** são simu
 3. **O pH do solo está dentro da faixa adequada**  
    - O pH influencia diretamente na capacidade da planta de absorver nutrientes. Se estiver fora da faixa ideal (muito ácido ou muito básico), a irrigação pode piorar o desequilíbrio e prejudicar ainda mais o solo.
 
-Caso **qualquer uma dessas condições não seja atendida**, a bomba é desativada automaticamente.
+Caso **qualquer uma dessas condições não seja atendida**, a bomba é desativada automaticamente. O status da bomba é indicado por um LED.
 
-O status da bomba é indicado por um LED.
+**Trecho do código comentado:**
 
-Trecho comentado do código:
+```cpp
+// Avaliação das condições para irrigação:
+// 1. Umidade abaixo do ideal
+// 2. Presença de pelo menos um dos nutrientes
+// 3. pH dentro da faixa adequada
+isUmidadeBaixa = umidade < 42.0;
+isNutrientePresente = temFosforo || temPotassio;
+phAdequado = ph >= 5.9 && ph <= 7.6;
 
-3. Banco de Dados SQL e Operações CRUD
+// Verifica se todas as condições estão satisfeitas para irrigação
+if (isUmidadeBaixa && isNutrientePresente && phAdequado) {
+   // Ativa a bomba d'água (RELE em LOW) e acende o LED indicador
+   digitalWrite(RELE_PIN, LOW);
+   digitalWrite(LED_PIN, HIGH);
+   ...
+}
+```
+
+### Explicação do Código C++ (ESP32):
+
+O código lê sensores simulados de umidade, pH e nutrientes e envia esses dados em formato JSON pela porta serial. Ele verifica se as condições para irrigação estão atendidas e, se sim, ativa a bomba de água por 5 segundos, indicando o estado com um LED e registrando a aplicação.
+
+### Explicação do Código Python (Backend):
+
+O código conecta-se ao ESP32 via serial para receber os dados JSON, processa as leituras e registros de irrigação, armazena tudo em um banco de dados, exibe informações no console e, ao ser interrompido, atualiza dados, lista registros e fecha as conexões corretamente.
+
+
+
+## 3. Banco de Dados SQL e Operações CRUD
 
 Os dados coletados pelo ESP32 são enviados via monitor serial e armazenados em um banco de dados SQLite utilizando Python.
 
-Estrutura do Banco de Dados
-Tabela plantacoes: Cadastro das plantações monitoradas.
-Tabela sensores: Cadastro dos sensores instalados.
-Tabela leituras: Armazena as leituras dos sensores (umidade, pH, fósforo, potássio, data/hora).
+### Estrutura do Banco de Dados:
+- Tabela *plantacoes*: Cadastro das plantações monitoradas.
+- Tabela *sensores*: Cadastro dos sensores instalados.
+- Tabela *leituras_sensores*: Armazena as leituras dos sensores (umidade, pH, fósforo, potássio, data/hora).
+- Tabela *aplicacoes_agua*: Registra as aplicações de água em determinada plantação por um período de tempo.
 
-Relação com o MER
-O modelo relacional segue o MER da Fase 2, onde:
+### Atributos e MER
+
+![Diagrama UML](/docs/uml.svg)
 
 
-Operações CRUD
+### Cardinalidades
+| Relacionamento | Tipo | Cardinalidade |
+| --- | --- | --- |
+| Sensor — Leitura_Sensor | 1:N | Um **sensor** pode realizar *múltiplas* **leituras**. Cada **leitura** pertence a *somente um* **sensor**.  |
+| Plantacao — Leitura_Sensor | 1:N | *Uma* **plantação** pode ter *várias* **leituras de sensores** ao longo do tempo. Cada **leitura de sensor** pertence a **uma única plantação**. |
+| Plantacao — Aplicacao_Agua | 1:N | Uma **plantação** pode ter *múltiplas* **aplicações de água**. Cada **aplicação d’água** pertence à *apenas uma* **plantação**. |
+
+### Operações CRUD
 O script Python implementa as operações básicas:
 
-Create: Inserção de novas plantações, sensores e leituras.
-Read: Consulta de leituras por plantação, sensor ou período.
-Update: Atualização de dados de plantações ou sensores.
-Delete: Remoção de sensores, plantações ou leituras.
-Exemplos de Uso
-Exemplo de Dados
-id	sensor_id	umidade	ph	fosforo	potassio	data_hora
-1	1	45	6.5	1	0	2024-06-01 10:00:00
-2	1	42	6.7	1	1	2024-06-01 11:00:00
-4. Como Executar
-ESP32 (Wokwi/PlatformIO)
-Abra o projeto no VS Code.
-Compile e faça upload do código para o ESP32.
-Visualize os dados no monitor serial.
-Python (Banco de Dados)
-Copie os dados do monitor serial.
-Execute o script Python em backend para inserir e manipular os dados no banco SQLite.
-5. Organização do Repositório
-esp32: Código-fonte do ESP32.
-backend: Scripts Python para banco de dados.
-docs: Imagens e documentação.
-README.md: Este arquivo.
-6. Demonstração
-[Opcional] Assista ao vídeo de demonstração:
-Link para o vídeo
+- Create: Inserção de novas plantações, sensores, leituras e aplicações d'água.
+- Read: Consulta de plantações, aplicações, leituras e leituras por período.
+- Update: Atualização de dados de plantações ou sensores.
+- Delete: Remoção de sensores, plantações ou leituras.
 
-7. Créditos
-Projeto desenvolvido para a disciplina de IoT – FIAP.
+#### Exemplos de Uso
+```python
+# Create
+inserir_plantacao(db, ("Plantação A", "2025-05-01", "2025-06-01", "Milho", "Monte Alto - SP"))
 
-Dúvidas ou sugestões? Abra uma issue!
+# Read
+print(listar_plantacoes(db)) # [('Plantação A', '2025-05-01', '2025-06-01', 'Milho', 'Monte Alto - SP')]
+
+# Update
+atualizar_sensor(db, 1, ("umidade", "dht22", "%"))
+
+# Delete
+deletar_leitura(db, 5)
+```
+
+Veja todas as operações CRUD no arquivo `backend/crud.py`
+
+## 4. Como Executar
+
+### ESP32 (Wokwi/PlatformIO)
+1. Abra o projeto no VS Code/Arduino IDE.
+2. Compile e faça upload do código para o ESP32.
+
+### Python (Banco de Dados)
+1. Conecte à porta Serial/COM do ESP32.
+2. Configure a porta no script.
+3. Execute o script Python em backend para inserir e manipular os dados no banco SQLite.
+
+## 5. Organização do Repositório
+
+```bash
+├── esp32/      # Código do ESP32
+├── backend/    # Scripts Python (banco de dados)
+├── docs/       # Documentação e imagens
+└── README.md   # Arquivo de descrição do projeto
+```
+
+## 6. Demonstração
+
+[Assista ao vídeo de demonstração/explicativo](https://youtu.be/nUFCEL9oX0c)
+[![Assista ao vídeo no YouTube](https://img.youtube.com/vi/nUFCEL9oX0c/hqdefault.jpg)](https://youtu.be/nUFCEL9oX0c)
+
+
+## 7. Créditos
+- Curso: Inteligência Artificial
+- Instituição: FIAP
+- Fase 3 – Colheita de Dados e Insights

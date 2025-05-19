@@ -20,7 +20,7 @@
     },
     {
       "type": "wokwi-photoresistor-sensor",
-      "id": "ldr1",
+      "id": "LDR_PIN1",
       "top": -73.6,
       "left": -248.8,
       "attrs": {}
@@ -60,7 +60,7 @@
       "id": "text1",
       "top": -96,
       "left": -220.8,
-      "attrs": { "text": "Sensor pH (LDR)" }
+      "attrs": { "text": "Sensor pH (LDR_PIN)" }
     },
     {
       "type": "wokwi-text",
@@ -105,9 +105,9 @@
     [ "esp:GND.1", "btn1:2.r", "black", [ "h-95.85", "v-9.6" ] ],
     [ "esp:14", "btn2:1.r", "gold", [ "h-57.45", "v-105.6" ] ],
     [ "btn1:1.r", "esp:13", "green", [ "v0", "h38.6", "v76.8" ] ],
-    [ "esp:GND.1", "ldr1:GND", "black", [ "h-38.25", "v-192" ] ],
-    [ "esp:3V3", "ldr1:VCC", "red", [ "h-28.65", "v-96" ] ],
-    [ "ldr1:AO", "esp:34", "violet", [ "h28.8", "v95.3" ] ],
+    [ "esp:GND.1", "LDR_PIN1:GND", "black", [ "h-38.25", "v-192" ] ],
+    [ "esp:3V3", "LDR_PIN1:VCC", "red", [ "h-28.65", "v-96" ] ],
+    [ "LDR_PIN1:AO", "esp:34", "violet", [ "h28.8", "v95.3" ] ],
     [ "dht1:GND", "esp:GND.2", "black", [ "v0" ] ],
     [ "esp:23", "r1:2", "blue", [ "h0" ] ],
     [ "r1:2", "dht1:SDA", "blue", [ "v-9.6", "h8.4" ] ],
