@@ -139,6 +139,7 @@ Veja todas as operações CRUD no arquivo `backend/crud.py`
 ## 6. Demonstração
 
 [Assista ao vídeo de demonstração/explicativo](https://youtu.be/nUFCEL9oX0c)
+
 [![Assista ao vídeo no YouTube](https://img.youtube.com/vi/nUFCEL9oX0c/hqdefault.jpg)](https://youtu.be/nUFCEL9oX0c)
 
 
