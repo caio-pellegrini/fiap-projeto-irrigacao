@@ -21,7 +21,7 @@ O circuito foi desenvolvido e simulado na plataforma Wokwi, utilizando os seguin
 
 ### Imagem do Circuito
 
-![Circuito Wokwi](docs/circuito_wokwi.png)
+![Circuito Wokwi](/docs/circuito_wokwi.jpg)
 
 
 ## 2. Lógica de Controle de Irrigação
